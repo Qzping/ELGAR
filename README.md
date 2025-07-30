@@ -178,7 +178,8 @@ You can visualize the comparison between IK result and normalized data:
 python vis_demo.py --instrument cello --proj_first 1 --proj_last 85
 ```
 
-[GIF Visualization]
+<img src="assets/ik_fit_result.gif" alt="ik fit result" width="43%" height="43%" />
+
 
 ### 2.3 Data Segmentation
 Run `python data_segmentation.py` to get the processed train data and the SPD-GEN dataset.
@@ -252,7 +253,7 @@ python get_blender_animation_from_gen.py    # Conversion of the generated result
 python get_blender_animation_from_train.py  # Conversion of the dataset samples
 ```
 
-[Generate the fbx]("") by the add-on.
+[Generate the fbx](./retargeting/README.md) by the add-on.
 
 [Download]("") the UE (5.5.4) project and replace the animation with yours. Have Fun!
 
