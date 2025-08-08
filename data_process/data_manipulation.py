@@ -23,7 +23,7 @@ import shutil
 
 
 class DataManipulatorCello:
-    def __init__(self, seq_length=150, hop_length=30, bodycolor="blue"):
+    def __init__(self, seq_length=150, hop_length=30, bodycolor="blue", hand_type='mano', body_type='smpl'):
         self.seq_length = seq_length
         self.hop_length = hop_length
         self.end_pin_index = 139
@@ -34,10 +34,11 @@ class DataManipulatorCello:
         # self.instrument_links = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 4], [3, 5], [4, 5], [5, 6], [7, 9], [8, 10]]  # with 2nd and 3rd string
         self.instrument_links = [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 5], [5, 6], [7, 9], [8, 10],
                                  [1, 7], [7, 8], [2, 8], [3, 9], [9, 10], [4, 10]]  # with 2nd and 3rd string
+        self.bow_links = [[0, 1]]
+
         self.hand_mano_links = [[0, 1], [1, 2], [2, 3], [0, 4], [4, 5], [5, 6], [0, 7], [7, 8], [8, 9], [0, 10],
                                 [10, 11], [11, 12], [0, 13], [13, 14], [14, 15], [3, 16], [6, 17], [9, 18], [12, 19],
                                 [15, 20]]
-
         self.hand_coco_links = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [0, 9], [9, 10],
                                 [10, 11], [11, 12], [0, 13], [13, 14], [14, 15], [15, 16], [0, 17], [17, 18], [18, 19],
                                 [19, 20]]
@@ -56,6 +57,20 @@ class DataManipulatorCello:
         # self.hand_links = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [0, 9], [9, 10],
         #                    [10, 11], [11, 12], [0, 13], [13, 14], [14, 15], [15, 16], [0, 17], [17, 18], [18, 19],
         #                    [19, 20]]  # coco links
+
+        if hand_type == 'mano':
+            self.hand_links = self.hand_mano_links
+        elif hand_type == 'coco':
+            self.hand_links = self.hand_coco_links
+        else:
+            raise ValueError("Hand type is not supported")
+
+        if body_type == 'smpl':
+            self.body_links = self.body_smpl_links
+        elif body_type == 'coco':
+            self.body_links = self.body_coco_links
+        else:
+            raise ValueError('Body type not supported')
 
         self.mano_parents_indices = [0, 0, 1, 2, 0, 4, 5, 0, 7, 8, 0, 10, 11, 0, 13, 14, 3, 6, 9, 12, 15]
         self.bone_lengths = np.array([0.094, 0.0335, 0.024, 0.094, 0.034, 0.03, 0.081, 0.029, 0.019, 0.087,
@@ -104,7 +119,8 @@ class DataManipulatorCello:
 
         # self.color_body_joint = [32 / 255, 52 / 255, 122 / 255]
         self.color_body_joint = [(bodyr-5)/255, (bodyg-5)/255, (bodyb-5)/255]
-        self.color_cp = [133 / 255, 252 / 255, 7 / 255]
+        # self.color_cp = [133 / 255, 252 / 255, 7 / 255]
+        self.color_cp = [252 / 255, 0 / 255, 0 / 255]
 
         # self.color_lefthand = [10 / 255, 80 / 255, 235 / 255]  # 深蓝色
         # self.color_righthand = [10 / 255, 80 / 255, 235 / 255]  # 深蓝色
@@ -531,20 +547,25 @@ class DataManipulatorCello:
         plt.close()
 
 
-    def visualize_3dkp_o3d(self, output_path, output_render, shot_path, audioname=None, lefthand_3d_position=None, righthand_3d_position=None,
-                           instrument_3d_position=None, bow_3d_position=None, body_3d_position=None,
-                           cp_3d_position=None, plot_static_frame=False, view_file=None, view_type='front',
-                            lookat_point=None, offset=0, selected_frame=0, if_vis=None, bodycolor="purple"):
+    def visualize_3dkp_o3d(self, output_path, shot_path, audioname=None, lefthand_3d_position=None,
+                           righthand_3d_position=None, instrument_3d_position=None, bow_3d_position=None,
+                           body_3d_position=None, cp_3d_position=None, plot_static_frame=False, view_file=None,
+                           view_type='front', lookat_point=None, offset=0, if_vis=None,
+                           bodycolor="purple", get_obj=False, get_OffScreenRender=False):
         print("Visualizing ...")
 
         import open3d as o3d
         import open3d.visualization.rendering as rendering
 
-        # H, W = 1440, 2650
-        H, W = 1920, 1440
-        # H, W = 1440, 1440  # compare and fg1 performer view
-        # H, W = 1920, 1280     # fg1 main
-        # H, W = 1440, 1702     # instrument only
+        if if_vis is None:
+            if_vis = [False, True, True, True, True, True]
+
+        if view_file is not None:
+            view_info = json.load(open(view_file, 'r'))
+            intrinsic = view_info['intrinsic']
+            H, W = intrinsic['height'], intrinsic['width']
+        else:
+            H, W = 1920, 1080
 
         # render2image
         render = rendering.OffscreenRenderer(W, H)
@@ -556,6 +577,7 @@ class DataManipulatorCello:
         c_rhj = rendering.MaterialRecord()
         c_body = rendering.MaterialRecord()
         c_bodyj = rendering.MaterialRecord()
+        c_cp = rendering.MaterialRecord()
         skin = [249 / 255, 174 / 255, 120 / 255, 1.0]
         c_lh.base_color = skin
         c_rh.base_color = skin
@@ -578,6 +600,8 @@ class DataManipulatorCello:
         c_body.base_color = [bodyr/255, bodyg/255, bodyb/255, 1.0]
         c_bodyj.base_color = [(bodyr-5)/255, (bodyg-5)/255, (bodyb-5)/255, 1.0]
 
+        c_cp.base_color = self.color_cp + [1.0]
+
         c_lh.shader = "defaultLit"
         c_rh.shader = "defaultLit"
         c_ins.shader = "defaultLit"
@@ -586,9 +610,10 @@ class DataManipulatorCello:
         c_rhj.shader = "defaultLit"
         c_body.shader = "defaultLit"
         c_bodyj.shader = "defaultLit"
+        c_cp.shader = "defaultLit"
 
-
-        # instrument_3d_position = self._get_23string(instrument_3d_position)
+        # flat bridge example
+        # instrument_3d_position = self.get_second_third_string(instrument_3d_position[:,:7])
 
         # 创建视图
         vis = o3d.visualization.Visualizer()
@@ -612,23 +637,29 @@ class DataManipulatorCello:
         fps = 30
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         video_writer = cv2.VideoWriter(output_path, fourcc, fps, (W, H))
-        video_render = cv2.VideoWriter(output_render, fourcc, fps, (W, H))
-
-        assimp_meshes = []
-
+        # video_render = cv2.VideoWriter(output_render, fourcc, fps, (W*2, H*2))
 
         # 逐帧更新
         for frame_idx in tqdm(range(len(lefthand_3d_position))):
             render.scene.clear_geometry()
-            # set 地板
-            # mesh = o3d.geometry.TriangleMesh()
+            mesh = o3d.geometry.TriangleMesh()
+
+            # set background color
             # render_bg = vis.get_render_option()
             # render_bg.background_color = np.array([187 / 255, 189 / 255, 188 / 255])
+
+            # set 地板
             if frame_idx == 0 and if_vis[0]:
                 self._set_ground(vis, instrument_3d_position[0])
                 # self._set_square_ground(vis, instrument_3d_position[0])
                 # render_option = vis.get_render_option()
                 # render_option.background_color = [0.4,0.4,0.4]
+
+            if frame_idx % 60 == 0 and get_OffScreenRender:
+                OffScreenTick = True
+            else:
+                OffScreenTick = False
+
 
             # 更新instrument位置
             if if_vis[1]:
@@ -636,48 +667,73 @@ class DataManipulatorCello:
                                                                   kp3d_cur_frame=instrument_3d_position[frame_idx],
                                                                   # kp3d_cur_frame=instrument_3d_position[frame_idx, 1:],
                                                                   links=self.instrument_links, color=self.color_instrument,
-                                                                  renderer=render, rcolor_joint=c_ins, rcolor_limb=c_ins, attribute="ins",
+                                                                  if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_ins, rcolor_limb=c_ins, attribute="ins",
                                                                   cylinder_radius=0.0023, sphere_radius=0.0023, color_node=self.color_instrument
                                                                   )
-                # mesh += whole_mesh
+                mesh += whole_mesh
+
+                # 更新cp位置
+                if cp_3d_position is not None:
+                    # ic(instrument_3d_position[frame_idx])
+                    # ic(cp_3d_position[frame_idx])
+                    # ic(frame_idx)
+                    # self._vis_cp(vis_obj=vis, cp_location=cp_3d_position[frame_idx], color=self.color_cp, size=0.006)
+                    if not np.isnan(cp_3d_position[frame_idx]).all():
+
+                        skeleton_cp_list, whole_mesh = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_cp_list,
+                                                                              kp3d_cur_frame=cp_3d_position[frame_idx],
+                                                                              links=[], color=self.color_cp,
+                                                                              if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_cp,
+                                                                              rcolor_limb=c_cp, attribute="cp",
+                                                                              cylinder_radius=0.0023, sphere_radius=0.006,
+                                                                              color_node=self.color_cp
+                                                                              )
 
             # 更新左手位置
             if if_vis[2]:
                 skeleton_lefthand_list, whole_mesh = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_lefthand_list,
                                                                 kp3d_cur_frame=lefthand_3d_position[frame_idx],
-                                                                renderer=render, rcolor_joint=c_lhj, rcolor_limb=c_lh, attribute="lh",
+                                                                if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_lhj, rcolor_limb=c_lh, attribute="lh",
                                                                 links=self.hand_links, color=self.color_lefthand, cylinder_radius=0.0045,
                                                                 sphere_radius=0.0045, color_node=self.color_lefthand_joint)
-                # mesh += whole_mesh
+                mesh += whole_mesh
             # 更新右手位置
             if if_vis[3]:
                 skeleton_righthand_list, whole_mesh = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_righthand_list,
                                                                  kp3d_cur_frame=righthand_3d_position[frame_idx],
-                                                                 renderer=render, rcolor_joint=c_rhj, rcolor_limb=c_rh, attribute="rh",
+                                                                 if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_rhj, rcolor_limb=c_rh, attribute="rh",
                                                                  links=self.hand_links, color=self.color_righthand, cylinder_radius=0.0045,
                                                                  sphere_radius=0.0045, color_node=self.color_righthand_joint)
-                # # mesh += whole_mesh
-            # # 更新bow位置
+                mesh += whole_mesh
+            # 更新bow位置
             if if_vis[4]:
                 skeleton_bow_list, whole_mesh = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_bow_list,
                                                            kp3d_cur_frame=bow_3d_position[frame_idx], links=self.bow_links,
-                                                           renderer=render, rcolor_joint=c_bow, rcolor_limb=c_bow, attribute="bow",
+                                                           if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_bow, rcolor_limb=c_bow, attribute="bow",
                                                            cylinder_radius=0.0025, color=self.color_bow,
                                                            sphere_radius=0.0025, color_node=self.color_bow)
-                # # mesh += whole_mesh
-            # # 更新body位置
+                mesh += whole_mesh
+            # 更新body位置
             if if_vis[5]:
                 skeleton_body_list, whole_mesh = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_body_list,
                                                             # kp3d_cur_frame=body_3d_position[frame_idx, 16:],      # no body (except arms)
                                                             kp3d_cur_frame=body_3d_position[frame_idx], links=self.body_links,
-                                                            renderer=render, rcolor_joint=c_bodyj, rcolor_limb=c_body, attribute="body",
+                                                            if_OffScreenRender=OffScreenTick, renderer=render, rcolor_joint=c_bodyj, rcolor_limb=c_body, attribute="body",
                                                             cylinder_radius=0.018, color=self.color_body,
                                                             sphere_radius=0.018, color_node=self.color_body_joint)
+                mesh += whole_mesh
+
+            # 生成obj
+            if get_obj:
+                temp_dir = r"../validation/TEMP_OBJ/TEMP/"
+                os.makedirs(temp_dir, exist_ok=True)
+                file = os.path.join(temp_dir, f'{frame_idx}.obj')
+                # file = os.path.join(temp_ply_dir, f"{frame_idx}.ply")
+                if (frame_idx-10) % 30 == 0 or frame_idx == 0:
+                    print(f"Frame {frame_idx} DONE")
+                    o3d.io.write_triangle_mesh(file, mesh)
 
 
-            # 更新cp位置
-            if cp_3d_position is not None:
-                self._vis_cp(vis_obj=vis, cp_location=cp_3d_position[frame_idx], color=self.color_cp, size=0.006)
 
             if view_type == "front":
                 # set 正面视角
@@ -733,18 +789,22 @@ class DataManipulatorCello:
             image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以符合OpenCV的要求
             video_writer.write(image_bgr)
 
-            rendered_image = render.render_to_image()
-            rendered_image = np.asarray(rendered_image)
+            # rendered_image = render.render_to_image()
+            # rendered_image = np.asarray(rendered_image)
             # rendered_image = cv2.resize(rendered_image, (W, H))
-            rendered_bgr = cv2.cvtColor(rendered_image, cv2.COLOR_RGB2BGR)
-            video_render.write(rendered_bgr)
+            # rendered_bgr = cv2.cvtColor(rendered_image, cv2.COLOR_RGB2BGR)
+            # video_render.write(rendered_bgr)
             if frame_idx % 60 == 0:
                 selected_shot = os.path.join(shot_path, f'{audioname}_{frame_idx+offset}.png')
                 vis.capture_screen_image(selected_shot, do_render=False)
+                # cv2.imwrite(selected_shot, image_bgr[380:1400, 100:])
+                # cv2.imwrite(selected_shot, image_bgr[200:1770, 70:1200])
+                # cv2.imwrite(selected_shot, image_bgr[235:1725, 153:1225])
 
-                rendered_image = render.render_to_image()
-                rendered_shot = os.path.join(shot_path, f'rendered_{audioname}_{frame_idx + offset}.png')
-                o3d.io.write_image(rendered_shot, rendered_image, 9)
+                if OffScreenTick:
+                    rendered_image = render.render_to_image()
+                    rendered_shot = os.path.join(shot_path, f'rendered_{audioname}_{frame_idx + offset}.png')
+                    o3d.io.write_image(rendered_shot, rendered_image, 9)
                 # ic(image_bgr.shape)
 
             # print(skeleton_body_list)
@@ -753,17 +813,20 @@ class DataManipulatorCello:
 
         vis.destroy_window()
         video_writer.release()
-        video_render.release()
+        # video_render.release()
         # pyassimp.export_mesh(assimp_meshes, "o3d2fbx_test.fbx")
 
-    def visualize_3dkp_o3d_view_select(self, output_path, lefthand_3d_position=None, righthand_3d_position=None,
-                           instrument_3d_position=None, bow_3d_position=None, body_3d_position=None,
-                           cp_3d_position=None, plot_static_frame=False, view_file=None, view_type='manual_view',
-                            manual_view_file='manual_view.json', lookat_point=None, if_vis=None):
+    def visualize_3dkp_o3d_view_select(self, lefthand_3d_position=None, righthand_3d_position=None,
+                                       instrument_3d_position=None, bow_3d_position=None, body_3d_position=None,
+                                       cp_3d_position=None, view_type='manual_view', if_vis=None,
+                                       manual_view_file='manual_view.json',  selected_frame=0):
         print("Visualizing ...")
 
         import open3d as o3d
         import open3d.visualization.rendering as rendering
+
+        if if_vis is None:
+            if_vis = [False, True, True, True, True, True]
 
         # instrument_3d_position = self._get_23string(instrument_3d_position)
 
@@ -791,24 +854,28 @@ class DataManipulatorCello:
             skeleton_body_list = []  # 5. 人体
 
             if if_vis[0]:
-                self._set_ground(vis, instrument_3d_position[0])
+                self._set_ground(vis, instrument_3d_position[selected_frame])
             if if_vis[1]:
                 skeleton_instrument_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_instrument_list,
-                                                                  kp3d_cur_frame=instrument_3d_position[0],
+                                                                  kp3d_cur_frame=instrument_3d_position[selected_frame],
                                                                   links=self.instrument_links, color=self.color_instrument,
                                                                   cylinder_radius=0.0023, sphere_radius=0.0023,
                                                                   color_node=self.color_instrument)
+                if cp_3d_position is not None:
+                    if not np.isnan(cp_3d_position[selected_frame]).all():
+                        self._vis_cp(vis_obj=vis, cp_location=cp_3d_position[selected_frame], color=self.color_cp, size=0.006)
+
             # 更新左手位置
             if if_vis[2]:
                 skeleton_lefthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_lefthand_list,
-                                                                kp3d_cur_frame=lefthand_3d_position[0],
+                                                                kp3d_cur_frame=lefthand_3d_position[selected_frame],
                                                                 links=self.hand_links, color=self.color_lefthand,
                                                                 cylinder_radius=0.0055,
                                                                 sphere_radius=0.0055, color_node=self.color_lefthand_joint)
             # 更新右手位置
             if if_vis[3]:
                 skeleton_righthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_righthand_list,
-                                                                 kp3d_cur_frame=righthand_3d_position[0],
+                                                                 kp3d_cur_frame=righthand_3d_position[selected_frame],
                                                                  links=self.hand_links, color=self.color_righthand,
                                                                  cylinder_radius=0.0055,
                                                                  sphere_radius=0.0055,
@@ -816,13 +883,13 @@ class DataManipulatorCello:
             # 更新bow位置
             if if_vis[4]:
                 skeleton_bow_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_bow_list,
-                                                           kp3d_cur_frame=bow_3d_position[0], links=self.bow_links,
+                                                           kp3d_cur_frame=bow_3d_position[selected_frame], links=self.bow_links,
                                                            cylinder_radius=0.0025, color=self.color_bow,
                                                            sphere_radius=0.0025, color_node=self.color_bow)
             # # 更新body位置
             if if_vis[5]:
                 skeleton_body_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_body_list,
-                                                            kp3d_cur_frame=body_3d_position[0],
+                                                            kp3d_cur_frame=body_3d_position[selected_frame],
                                                             links=self.body_links, color=self.color_body,
                                                             cylinder_radius=0.018, sphere_radius=0.018,
                                                             color_node=self.color_body_joint)
@@ -848,103 +915,95 @@ class DataManipulatorCello:
         else:
             print(f"Backup already exists: {backup_manual_view}")
 
-        vis.create_window(width=W, height=H)
-        # 添加初始帧
-        skeleton_instrument_list = []  # 1. 琴
-        skeleton_lefthand_list = []  # 2. 左手
-        skeleton_righthand_list = []  # 3. 右手
-        skeleton_bow_list = []  # 4. 弓
-        skeleton_body_list = []  # 5. 人体
-
-        # 创建视频writer
-        fps = 30
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        video_writer = cv2.VideoWriter(output_path, fourcc, fps, (W, H))
-
-        # 逐帧更新
-        for frame_idx in range(len(lefthand_3d_position)):
-            # set 地板
-            if frame_idx == 0:
-                # self._set_ground(vis, instrument_3d_position[0])
-                self._set_ground(vis, instrument_3d_position[0])
-
-            # 更新instrument位置
-            skeleton_instrument_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_instrument_list,
-                                                              kp3d_cur_frame=instrument_3d_position[frame_idx],
-                                                              links=self.instrument_links, color=self.color_instrument,
-                                                              cylinder_radius=0.0023, sphere_radius=0.0023,
-                                                              color_node=self.color_instrument)
-            # 更新左手位置
-            skeleton_lefthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_lefthand_list,
-                                                            kp3d_cur_frame=lefthand_3d_position[frame_idx],
-                                                            links=self.hand_links, color=self.color_lefthand,
-                                                            cylinder_radius=0.0055,
-                                                            sphere_radius=0.0055, color_node=self.color_lefthand_joint)
-            # 更新右手位置
-            skeleton_righthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_righthand_list,
-                                                             kp3d_cur_frame=righthand_3d_position[frame_idx],
-                                                             links=self.hand_links, color=self.color_righthand,
-                                                             cylinder_radius=0.0055,
-                                                             sphere_radius=0.0055,
-                                                             color_node=self.color_righthand_joint)
-            # 更新bow位置
-            skeleton_bow_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_bow_list,
-                                                       kp3d_cur_frame=bow_3d_position[frame_idx], links=self.bow_links,
-                                                       cylinder_radius=0.0045, color=self.color_bow,
-                                                       sphere_radius=0.0045, color_node=self.color_bow)
-            # 更新body位置
-            skeleton_body_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_body_list,
-                                                        kp3d_cur_frame=body_3d_position[frame_idx],
-                                                        links=self.body_links, color=self.color_body,
-                                                        cylinder_radius=0.018, sphere_radius=0.018,
-                                                        color_node=self.color_body_joint)
-            # 更新cp位置
-            if cp_3d_position is not None:
-                self._vis_cp(vis_obj=vis, cp_location=cp_3d_position[frame_idx], color=self.color_cp, size=0.006)
-
-            if view_type == "front":
-                # set 正面视角
-                self._set_viewpoint_front(vis, instrument_3d_position[0])
-                ctr = vis.get_view_control()
-                ctr.set_lookat(lookat_point)
-            elif view_type == "lateral":
-                # set 侧面视角
-                self._set_viewpoint_lateral(vis, instrument_3d_position[0])
-                ctr = vis.get_view_control()
-                ctr.set_lookat(lookat_point)
-            elif view_type == "manual_view":
-                ctr = vis.get_view_control()
-                param = o3d.io.read_pinhole_camera_parameters(manual_view_file)
-                ctr.convert_from_pinhole_camera_parameters(param, allow_arbitrary=True)
-                # ctr.set_lookat(lookat_point)
-            elif view_file != None:
-                if os.path.isfile(view_file):
-                    # set 特定视角
-                    ctr = vis.get_view_control()
-                    param = o3d.io.read_pinhole_camera_parameters(view_file)
-                    ctr.convert_from_pinhole_camera_parameters(param, allow_arbitrary=True)
-                    # ctr.set_lookat(lookat_point)  # 目标点
-                else:
-                    print("No view file founded.")
-
-            vis.poll_events()
-            vis.update_renderer()
-            # vis.run()
-            while plot_static_frame and frame_idx == 0:
-                vis.poll_events()
-                vis.update_renderer()
-                time.sleep(0.01)  # 防止 CPU 占用过高
-
-            image = vis.capture_screen_float_buffer()
-            image = (255 * np.asarray(image)).astype(np.uint8)
-            image = cv2.resize(image, (W, H))
-            image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以符合OpenCV的要求
-            video_writer.write(image_bgr)
-
-            vis.capture_screen_image("test_image_3.png")
-
-        vis.destroy_window()
-        video_writer.release()
+        # vis.create_window(width=W, height=H)
+        # # 添加初始帧
+        # skeleton_instrument_list = []  # 1. 琴
+        # skeleton_lefthand_list = []  # 2. 左手
+        # skeleton_righthand_list = []  # 3. 右手
+        # skeleton_bow_list = []  # 4. 弓
+        # skeleton_body_list = []  # 5. 人体
+        #
+        # # 创建视频writer
+        # fps = 30
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # video_writer = cv2.VideoWriter(output_path, fourcc, fps, (W, H))
+        #
+        # # set 地板
+        # self._set_ground(vis, instrument_3d_position[0])
+        #
+        # # 更新instrument位置
+        # skeleton_instrument_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_instrument_list,
+        #                                                   kp3d_cur_frame=instrument_3d_position[selected_frame],
+        #                                                   links=self.instrument_links, color=self.color_instrument,
+        #                                                   cylinder_radius=0.0023, sphere_radius=0.0023,
+        #                                                   color_node=self.color_instrument)
+        # # 更新左手位置
+        # skeleton_lefthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_lefthand_list,
+        #                                                 kp3d_cur_frame=lefthand_3d_position[selected_frame],
+        #                                                 links=self.hand_links, color=self.color_lefthand,
+        #                                                 cylinder_radius=0.0055,
+        #                                                 sphere_radius=0.0055, color_node=self.color_lefthand_joint)
+        # # 更新右手位置
+        # skeleton_righthand_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_righthand_list,
+        #                                                  kp3d_cur_frame=righthand_3d_position[selected_frame],
+        #                                                  links=self.hand_links, color=self.color_righthand,
+        #                                                  cylinder_radius=0.0055,
+        #                                                  sphere_radius=0.0055,
+        #                                                  color_node=self.color_righthand_joint)
+        # # 更新bow位置
+        # skeleton_bow_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_bow_list,
+        #                                            kp3d_cur_frame=bow_3d_position[selected_frame], links=self.bow_links,
+        #                                            cylinder_radius=0.0045, color=self.color_bow,
+        #                                            sphere_radius=0.0045, color_node=self.color_bow)
+        # # 更新body位置
+        # skeleton_body_list = self._vis_frame_update(vis_obj=vis, skeleton_list=skeleton_body_list,
+        #                                             kp3d_cur_frame=body_3d_position[selected_frame],
+        #                                             links=self.body_links, color=self.color_body,
+        #                                             cylinder_radius=0.018, sphere_radius=0.018,
+        #                                             color_node=self.color_body_joint)
+        # # 更新cp位置
+        # ic(cp_3d_position)
+        # if cp_3d_position is not None:
+        #     ic(selected_frame)
+        #     self._vis_cp(vis_obj=vis, cp_location=cp_3d_position[selected_frame], color=self.color_cp, size=10)
+        #
+        # if view_type == "front":
+        #     # set 正面视角
+        #     self._set_viewpoint_front(vis, instrument_3d_position[0])
+        #     ctr = vis.get_view_control()
+        #     ctr.set_lookat(lookat_point)
+        # elif view_type == "lateral":
+        #     # set 侧面视角
+        #     self._set_viewpoint_lateral(vis, instrument_3d_position[0])
+        #     ctr = vis.get_view_control()
+        #     ctr.set_lookat(lookat_point)
+        # elif view_type == "manual_view":
+        #     ctr = vis.get_view_control()
+        #     param = o3d.io.read_pinhole_camera_parameters(manual_view_file)
+        #     ctr.convert_from_pinhole_camera_parameters(param, allow_arbitrary=True)
+        #     # ctr.set_lookat(lookat_point)
+        # elif view_file != None:
+        #     if os.path.isfile(view_file):
+        #         # set 特定视角
+        #         ctr = vis.get_view_control()
+        #         param = o3d.io.read_pinhole_camera_parameters(view_file)
+        #         ctr.convert_from_pinhole_camera_parameters(param, allow_arbitrary=True)
+        #         # ctr.set_lookat(lookat_point)  # 目标点
+        #     else:
+        #         print("No view file founded.")
+        #
+        # vis.poll_events()
+        # vis.update_renderer()
+        #
+        # image = vis.capture_screen_float_buffer()
+        # image = (255 * np.asarray(image)).astype(np.uint8)
+        # image = cv2.resize(image, (W, H))
+        # image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # 转换为BGR格式以符合OpenCV的要求
+        # video_writer.write(image_bgr)
+        #
+        # vis.capture_screen_image("test_image_3.png")
+        #
+        # vis.destroy_window()
 
 
 
@@ -1103,6 +1162,20 @@ class DataManipulatorCello:
             loc_3d[:, i] = signal.savgol_filter(loc_3d[:, i], window_length=sf, polyorder=2, axis=0, mode='interp')
         return loc_3d
 
+    def _rotation_matrix_from_vectors(self, vec1, vec2):
+        """ Find the rotation matrix that aligns vec1 to vec2
+        :param vec1: A 3d "source" vector
+        :param vec2: A 3d "destination" vector
+        :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
+        """
+        a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
+        v = np.cross(a, b)
+        c = np.dot(a, b)
+        s = np.linalg.norm(v)
+        kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+        return rotation_matrix
+
     def _compute_axis_lim(self, points, scale_factor=1):
         # ic(triangulated_points.shape)
         # triangulated_points in shape [num_frame, num_keypoint, 3 axis]
@@ -1199,51 +1272,20 @@ class DataManipulatorCello:
 
     def _normalize_vector_batch(self, v_batch):
         """
-        输入shape: (batch_size, 3)，对每一行分别归一化
+        Input shape: (batch_size, 3), normalize each row
         """
-        # 计算每一行的模
+
         norms = np.linalg.norm(v_batch, axis=1, keepdims=True)
-        # 防止除以0的情况，保留原值
+        # prevent from divided by 0
         norms[norms == 0] = 1
-        # 对每一行进行归一化
+        # normalize each batch
         normalized_arr = v_batch / norms
         return normalized_arr
 
-    def _vis_skeleton0(self, joints, limbs, cylinder_radius=0.006,
-                       add_trans=None, color_vis=None):
-        """
-        Input:
-            joints: numpy [n_joints, 3], joint positions
-            limbs: limb topology
-            add_trans: numpy [3], additional translation for skeleton
-            mask_scheme: occlusion mask scheme, 'lower'/'full'/'video'
-            start/end: start/end frame for full-body occlusion mask if mask_scheme=='full'
-            t: current timestep (for full-body occlusion visualization)
-        Output:
-            skeleton_list: open3d body skeleton (a list of open3d arrows)
-        """
-        import open3d as o3d
-
-        skeleton_list = []
-        for limb in limbs:
-            bone_length = np.linalg.norm(joints[[limb[0]]] - joints[[limb[1]]], axis=-1)
-            arrow = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius=cylinder_radius, cone_radius=0.001,
-                                                           cylinder_height=bone_length, cone_height=0.001)
-            mat = self._rotation_matrix_from_vectors(np.array([0, 0, 1]), joints[limb[1]] - joints[limb[0]])
-            transformation = np.identity(4)
-            transformation[0:3, 0:3] = mat
-            transformation[:3, 3] = joints[limb[0]]
-            if add_trans is not None:
-                transformation[0:3, 3] += add_trans
-            arrow.transform(transformation)
-            arrow.paint_uniform_color(color_vis)
-            arrow.compute_vertex_normals()
-            skeleton_list.append(arrow)
-        return skeleton_list
 
     def _vis_skeleton(self, joints, limbs, cylinder_radius=0.006, sphere_radius=0.003,
                      add_trans=None, color_vis=None, color_node=None,
-                     renderer=None, rcolor_joint=None, rcolor_limb=None, attribute=None):
+                     if_OffScreenRender=False, renderer=None, rcolor_joint=None, rcolor_limb=None, attribute=None):
         """
         Input:
             joints: numpy [n_joints, 3], joint positions
@@ -1270,7 +1312,7 @@ class DataManipulatorCello:
             sphere.paint_uniform_color(color_node)  # paint the sphere with the specified color
             sphere.compute_vertex_normals()
             whole_mesh += sphere
-            if renderer is not None:
+            if if_OffScreenRender:
                 sklt_name = f"{attribute}_joint_{idx}"
                 renderer.scene.add_geometry(sklt_name, sphere, rcolor_joint)
             skeleton_list.append(sphere)  # add the sphere to the skeleton list
@@ -1289,129 +1331,11 @@ class DataManipulatorCello:
             arrow.paint_uniform_color(color_vis)
             arrow.compute_vertex_normals()
             whole_mesh += arrow
-            if renderer is not None:
+            if if_OffScreenRender:
                 sklt_name = f"{attribute}_limb_{idx}"
                 renderer.scene.add_geometry(sklt_name, arrow, rcolor_limb)
             skeleton_list.append(arrow)
         return skeleton_list, whole_mesh
-
-    def _vis_skeleton2(self, joints, limbs, cylinder_radius=0.006, sphere_radius=0.003,
-                     add_trans=None, color_vis=None, color_node=None):
-        """
-        Input:
-            joints: numpy [n_joints, 3], joint positions
-            limbs: limb topology
-            add_trans: numpy [3], additional translation for skeleton
-            mask_scheme: occlusion mask scheme, 'lower'/'full'/'video'
-            start/end: start/end frame for full-body occlusion mask if mask_scheme=='full'
-            t: current timestep (for full-body occlusion visualization)
-        Output:
-            skeleton_list: open3d body skeleton (a list of open3d arrows)
-        """
-        import open3d as o3d
-
-        skeleton_list = []
-
-        for joint in joints:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=sphere_radius)  # radius is half the diameter
-            if add_trans is not None:
-                joint_position = joint + add_trans  # apply translation to joint position
-            else:
-                joint_position = joint  # no translation if add_trans is None
-            sphere.translate(joint_position)  # translate the sphere to the joint position
-            sphere.paint_uniform_color(color_node)  # paint the sphere with the specified color
-            sphere.compute_vertex_normals()
-            skeleton_list.append(sphere)  # add the sphere to the skeleton list
-
-        for limb in limbs:
-            bone_length = np.linalg.norm(joints[[limb[0]]] - joints[[limb[1]]], axis=-1)
-            arrow = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius=cylinder_radius, cone_radius=0.001,
-                                                           cylinder_height=bone_length, cone_height=0.001)
-            mat = self._rotation_matrix_from_vectors(np.array([0, 0, 1]), joints[limb[1]] - joints[limb[0]])
-            transformation = np.identity(4)
-            transformation[0:3, 0:3] = mat
-            transformation[:3, 3] = joints[limb[0]]
-            if add_trans is not None:
-                transformation[0:3, 3] += add_trans
-            arrow.transform(transformation)
-            arrow.paint_uniform_color(color_vis)
-            # arrow.compute_vertex_normals()
-            skeleton_list.append(arrow)
-        return skeleton_list
-
-    def _vis_skeleton3(self, joints, limbs, cylinder_radius=0.006, sphere_radius=0.003,
-                     add_trans=None, color_vis=None, color_node=None):
-        """
-        Input:
-            joints: numpy [n_joints, 3], joint positions
-            limbs: limb topology
-            add_trans: numpy [3], additional translation for skeleton
-            mask_scheme: occlusion mask scheme, 'lower'/'full'/'video'
-            start/end: start/end frame for full-body occlusion mask if mask_scheme=='full'
-            t: current timestep (for full-body occlusion visualization)
-        Output:
-            skeleton_list: open3d body skeleton (a list of open3d arrows)
-        """
-        import open3d as o3d
-
-        skeleton_list = []
-
-        for joint in joints:
-            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=sphere_radius)  # radius is half the diameter
-            if add_trans is not None:
-                joint_position = joint + add_trans  # apply translation to joint position
-            else:
-                joint_position = joint  # no translation if add_trans is None
-            sphere.translate(joint_position)  # translate the sphere to the joint position
-            sphere.paint_uniform_color(color_node)  # paint the sphere with the specified color
-            sphere.compute_vertex_normals()
-            skeleton_list.append(sphere)  # add the sphere to the skeleton list
-
-        for limb in limbs:
-            bone_length = np.linalg.norm(joints[[limb[0]]] - joints[[limb[1]]], axis=-1)
-            arrow = o3d.geometry.TriangleMesh.create_arrow(cylinder_radius=cylinder_radius, cone_radius=0.001,
-                                                           cylinder_height=bone_length, cone_height=0.001)
-            mat = self._rotation_matrix_from_vectors(np.array([0, 0, 1]), joints[limb[1]] - joints[limb[0]])
-            transformation = np.identity(4)
-            transformation[0:3, 0:3] = mat
-            transformation[:3, 3] = joints[limb[0]]
-            if add_trans is not None:
-                transformation[0:3, 3] += add_trans
-            arrow.transform(transformation)
-            arrow.paint_uniform_color(color_vis)
-            # arrow.compute_vertex_normals()
-            skeleton_list.append(arrow)
-
-        planer = 40
-        planeg = 40
-        planeb = 40
-        points = np.array([joints[1], joints[3], joints[9], joints[7]])
-        triangles = np.array([[0,1,2], [0,2,3]])
-        plane = o3d.geometry.TriangleMesh()
-        plane.vertices = o3d.utility.Vector3dVector(points)
-        plane.triangles = o3d.utility.Vector3iVector(triangles)
-        plane.paint_uniform_color([planer / 255, planeg / 255, planeb / 255])
-        plane.compute_vertex_normals()
-        skeleton_list.append(plane)
-
-        points = np.array([joints[7], joints[9], joints[10], joints[8]])
-        triangles = np.array([[0, 1, 2], [0, 2, 3]])
-        plane = o3d.geometry.TriangleMesh()
-        plane.vertices = o3d.utility.Vector3dVector(points)
-        plane.triangles = o3d.utility.Vector3iVector(triangles)
-        plane.paint_uniform_color([planer / 255, planeg / 255, planeb / 255])
-        plane.compute_vertex_normals()
-        skeleton_list.append(plane)
-
-        points = np.array([joints[8], joints[10], joints[4], joints[2]])
-        triangles = np.array([[0, 1, 2], [0, 2, 3]])
-        plane = o3d.geometry.TriangleMesh()
-        plane.vertices = o3d.utility.Vector3dVector(points)
-        plane.triangles = o3d.utility.Vector3iVector(triangles)
-        plane.paint_uniform_color([planer / 255, planeg / 255, planeb / 255])
-        plane.compute_vertex_normals()
-        skeleton_list.append(plane)
-        return skeleton_list
 
     def _set_ground(self, vis_obj, instrument7_frame0):
         import open3d as o3d
@@ -1427,7 +1351,7 @@ class DataManipulatorCello:
         # 创建圆柱体地面
         radius = 0.6
         height = 0.01
-        cylinder = o3d.geometry.TriangleMesh.create_cylinder(radius=radius, height=height)
+        cylinder = o3d.geometry.TriangleMesh.create_cylinder(radius=radius, height=height, resolution=1000)
         cylinder.paint_uniform_color([0.9, 0.9, 0.9])
 
         # 将圆柱体的底面中心移动到endpin的位置
@@ -1496,30 +1420,16 @@ class DataManipulatorCello:
         vis_obj.get_render_option().show_coordinate_frame = False
         vis_obj.add_geometry(ground)
 
-    def _vis_frame_update(self, vis_obj, skeleton_list, kp3d_cur_frame, links, color, color_node, renderer, rcolor_joint, rcolor_limb, attribute, cylinder_radius=0.006, sphere_radius=0.003, ):
+    def _vis_frame_update(self, vis_obj, skeleton_list, kp3d_cur_frame, links, color, color_node,
+                          if_OffScreenRender=False, renderer=None, rcolor_joint=None, rcolor_limb=None, attribute=None,
+                          cylinder_radius=0.006, sphere_radius=0.003, ):
             for arrow in skeleton_list:
                 vis_obj.remove_geometry(arrow, reset_bounding_box=False)  # 清空前一帧
             skeleton_list, whole_mesh = self._vis_skeleton(joints=kp3d_cur_frame, limbs=links, color_vis=color, cylinder_radius=cylinder_radius, sphere_radius=sphere_radius, color_node=color_node,
-                                                           renderer=renderer, rcolor_joint=rcolor_joint, rcolor_limb=rcolor_limb, attribute=attribute)
+                                                           if_OffScreenRender=if_OffScreenRender, renderer=renderer, rcolor_joint=rcolor_joint, rcolor_limb=rcolor_limb, attribute=attribute)
             for arrow in skeleton_list:
                 vis_obj.add_geometry(arrow)
             return skeleton_list, whole_mesh
-
-    def _vis_frame_update2(self, vis_obj, skeleton_list, kp3d_cur_frame, links, color, color_node, cylinder_radius=0.006, sphere_radius=0.003):
-            for arrow in skeleton_list:
-                vis_obj.remove_geometry(arrow, reset_bounding_box=False)  # 清空前一帧
-            skeleton_list = self._vis_skeleton2(joints=kp3d_cur_frame, limbs=links, color_vis=color, cylinder_radius=cylinder_radius, sphere_radius=sphere_radius, color_node=color_node)
-            for arrow in skeleton_list:
-                vis_obj.add_geometry(arrow)
-            return skeleton_list
-
-    def _vis_frame_update3(self, vis_obj, skeleton_list, kp3d_cur_frame, links, color, color_node, cylinder_radius=0.006, sphere_radius=0.003):
-            for arrow in skeleton_list:
-                vis_obj.remove_geometry(arrow, reset_bounding_box=False)  # 清空前一帧
-            skeleton_list = self._vis_skeleton3(joints=kp3d_cur_frame, limbs=links, color_vis=color, cylinder_radius=cylinder_radius, sphere_radius=sphere_radius, color_node=color_node)
-            for arrow in skeleton_list:
-                vis_obj.add_geometry(arrow)
-            return skeleton_list
 
     def _set_viewpoint_front(self, vis_obj, instrument7_frame0):
 

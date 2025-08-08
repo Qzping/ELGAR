@@ -30,33 +30,34 @@ def main():
     ckpt_it = int(ckpt_it)
     if ckpt_it >= 1000:
         divided = ckpt_it / 1000
-        if divided.is_integer(): 
+        if divided.is_integer():
             ckpt_it = f"{int(divided)}k"
         else:
             ckpt_it = f"{divided:.1f}k"
     else:
         ckpt_it = str(ckpt_it)
-    
+
     filename = args.filename
 
     if 'full' in filename:
         filename = filename['full']
     else:
         filename = filename[args.cond_mode]
-    
+
     datapath = args.datapath
     fullpath = os.path.join(datapath, filename)
 
     if args.num_samples == 0:
+        a = np.load(fullpath)
         args.num_samples = np.load(fullpath).shape[0]
-    
+
     filename = os.path.basename(filename)
     filename = filename.split('.')[0]
-    
+
     out_path = os.path.join(os.path.dirname(os.path.dirname(args.model_path)), 'sample')
     curr_t = time.localtime()
-    run_id = f'{curr_t.tm_year}' + f'{curr_t.tm_mon:02d}' +\
-             f'{curr_t.tm_mday:02d}' + f'{curr_t.tm_hour:02d}' +\
+    run_id = f'{curr_t.tm_year}' + f'{curr_t.tm_mon:02d}' + \
+             f'{curr_t.tm_mday:02d}' + f'{curr_t.tm_hour:02d}' + \
              f'{curr_t.tm_min:02d}'
     run_id = int(run_id)
     out_path = os.path.join(out_path, str(run_id))  # create new path
@@ -65,10 +66,9 @@ def main():
 
     logger.get_current(out_path)
 
-    
     max_frames = 150
     fps = 30
-    n_frames = min(max_frames, int(args.motion_length*fps))
+    n_frames = min(max_frames, int(args.motion_length * fps))
     is_using_data = True
     dist_util.setup_dist(args.device)
 
@@ -78,8 +78,9 @@ def main():
         args.batch_size = args.num_samples
 
     logger.log('Loading dataset...')
-    
-    data = get_dataset_loader(batch_size=args.batch_size, datapath=args.datapath, split='test', filename=args.filename, shuffle=False, cond_mode=args.cond_mode)
+
+    data = get_dataset_loader(batch_size=args.batch_size, datapath=args.datapath, split='test', filename=args.filename,
+                              shuffle=False, cond_mode=args.cond_mode)
     logger.log(f"Sample numeber: {args.num_samples}")
     total_num_samples = args.num_samples * args.num_repetitions
 
@@ -93,8 +94,8 @@ def main():
 
     gparam = args.guidance_param
     if args.guidance_param != 1:
-        model = ClassifierFreeSampleModel(model)   # wrapping model with the classifier-free sampler
-    
+        model = ClassifierFreeSampleModel(model)  # wrapping model with the classifier-free sampler
+
     model.to(dist_util.dev())
     model.eval()  # disable random masking
 
@@ -110,11 +111,10 @@ def main():
     # print(model_kwargs)
     model_kwargs = {key: val.to(dist_util.dev()) if torch.is_tensor(val) else val for key, val in model_kwargs.items()}
     unify_device(model_kwargs, device=dist_util.dev())
-    
+
     if gt is not None:
         gt_translations = gt[:, -1, :3]
         gt_rotations = gt[:, :-1]
-    
 
     for rep_i in range(args.num_repetitions):
         all_motions = []
@@ -122,13 +122,13 @@ def main():
         all_instruments = []
         all_gt_rotations = []
         all_gt_trans = []
-        
+
         all_lh_rot = []
         all_rh_rot = []
         all_body_rot = []
 
         print(f'### Sampling [repetitions #{rep_i}]')
-        
+
         # add CFG scale to batch, denoted by 's' from the sampling step in the paper
         if args.guidance_param != 1:
             model_kwargs['y']['scale'] = torch.ones(args.batch_size, device=dist_util.dev()) * args.guidance_param
@@ -152,7 +152,8 @@ def main():
         )
 
         rot2xyz_pose_rep = 'xyz' if model.data_rep in ['xyz', 'hml_vec'] else model.data_rep
-        rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' or gt is None else model_kwargs['y']['mask'].reshape(args.batch_size, n_frames).bool()
+        rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' or gt is None else model_kwargs['y']['mask'].reshape(
+            args.batch_size, n_frames).bool()
         all_body_rot.append(sample[:, :21].cpu().numpy())
         all_lh_rot.append(sample[:, 21:36].cpu().numpy())
         all_rh_rot.append(sample[:, 36:51].cpu().numpy())
@@ -176,8 +177,8 @@ def main():
         print('all_motions:', all_motions.shape)
         # all_text = all_text[:total_num_samples]
         if gt is not None:
-            all_gt_rotations = np.concatenate(all_gt_rotations, axis = 0)[:total_num_samples]
-            all_gt_trans = np.concatenate(all_gt_trans, axis = 0)[:total_num_samples]
+            all_gt_rotations = np.concatenate(all_gt_rotations, axis=0)[:total_num_samples]
+            all_gt_trans = np.concatenate(all_gt_trans, axis=0)[:total_num_samples]
             all_lengths = np.concatenate(all_lengths, axis=0)[:total_num_samples]
             # all_instruments = np.concatenate(all_instruments, axis=0)[:total_num_samples]
 

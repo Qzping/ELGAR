@@ -1,12 +1,14 @@
 # ELGAR
 
-The offical implementation of [ELGAR: **E**xpressive Ce**l**lo Performance Motion **G**eneration for **A**udio **R**endition]("https://arxiv.org/abs/2505.04203").
+The offical implementation of [ELGAR: <ins>**E**</ins>xpressive Ce<ins>**L**</ins>lo Performance Motion <ins>**G**</ins>eneration for <ins>**A**</ins>udio <ins>**R**</ins>endition]("https://arxiv.org/abs/2505.04203").
 
-Get the [String Performance Dataset (SPD)]("").
+Visit our [project page](https://metaverse-ai-lab-thu.github.io/ELGAR/) for more demos.
 
-Get the [SPD-GEN dataset]("").
+Get the [SPD dataset](https://forms.gle/oNFFu3NRoVwkV1Xd9) introduced by our [last paper](https://metaverse-ai-lab-thu.github.io/String-Performance-Dataset-SPD/).
 
-<!-- Please visit our [project page]("") for more demos. -->
+Get the [SPD-GEN Coming Soon]().
+
+[![poster](assets/poster.jpg)](assets/poster.jpg)
 
 ## 0. Requirements
 We test our code with Python 3.11 and PyTorch 2.3.1 (CUDA 12.1)
@@ -210,7 +212,17 @@ Run `bash train_script.sh` to train the model.
 ## 3. Validation
 
 ### 3.1. Qualitative Visualization
-Coming Soon.
+
+Our visualization is implemented via open3d.
+
+`view_select = True` for the view select based on the monitor (resolution) you are using.
+
+`view_select = False` for the video generation based on the selected view.
+
+```
+pip install open3d==0.14.1
+python visualize.py
+```
 
 ### 3.1. Quantitative Evaluation
 Download the [test split]("") of SPD-GEN to quantitatively validate our results. Place them in the following directory.
@@ -259,5 +271,11 @@ python get_blender_animation_from_train.py  # Conversion of the dataset samples
 
 
 ## Acknowledgements
-Our code is built on the shoulders of giants. We would like to thank the following open-source projects: [MDM](https://github.com/GuyTevet/motion-diffusion-model), [EDGE](https://github.com/Stanford-TML/EDGE), [VPoser](https://github.com/nghorbani/human_body_prior), [jukemirlib](https://github.com/rodrigo-castellon/jukemirlib).
 
+Our code is built on the shoulders of giants. We would like to thank the following open-source projects: [MDM](https://github.com/GuyTevet/motion-diffusion-model), [EDGE](https://github.com/Stanford-TML/EDGE), [VPoser](https://github.com/nghorbani/human_body_prior), [jukemirlib](https://github.com/rodrigo-castellon/jukemirlib), [Jukebox](https://github.com/openai/jukebox).
+
+## License
+
+This project is licensed under a custom Non-Commercial License.  
+See the [LICENSE](./LICENSE) file for details.  
+Commercial use is prohibited without permission.
