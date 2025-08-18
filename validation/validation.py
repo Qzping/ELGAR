@@ -7,7 +7,7 @@ from data_process.data_alignment import *
 
 
 class Validation():
-    def __init__(self, generation_motion_file, original_motion_file, original_body_file, input_audio_file):
+    def __init__(self, generation_motion_file, original_motion_file, original_body_file, input_audio_file, vis=False):
 
         self.input_audio_file = input_audio_file
 
@@ -16,7 +16,6 @@ class Validation():
          self.generation_instrument_3d, self.generation_bow_3d, self.generation_R_s) = get_final_gen_motion(generation_motion_file)
         self.generation_num_frames = self.generation_lh_3d.shape[0]
         # ic(self.generation_num_frames)
-
 
         # original motion
         (self.original_lh_3d, self.original_rh_3d, self.original_body_3d, self.original_instrument_3d,
@@ -39,15 +38,15 @@ class Validation():
             3: (1, 3)  # 4弦
         }
 
-        # valid num frame, slice motion data
-        self.valid_num_frame = min(self.generation_num_frames, self.audio_frame_num)
-        # self.valid_num_frame = self.generation_num_frames
-        vars_to_slice = ['generation_lh_3d', 'generation_rh_3d', 'generation_body_3d', 'generation_instrument_3d', 'generation_bow_3d',
-                         'original_lh_3d', 'original_rh_3d', 'original_body_3d', 'original_instrument_3d', 'original_bow_3d', 'original_cp_3d',
-                         'cp_info', 'used_finger_idx', 'original_R_s']
-        for var in vars_to_slice:
-            setattr(self, var, getattr(self, var)[:self.valid_num_frame])
-
+        if not vis == True:
+            # valid num frame, slice motion data
+            self.valid_num_frame = min(self.generation_num_frames, self.audio_frame_num)
+            # self.valid_num_frame = self.generation_num_frames
+            vars_to_slice = ['generation_lh_3d', 'generation_rh_3d', 'generation_body_3d', 'generation_instrument_3d', 'generation_bow_3d',
+                             'original_lh_3d', 'original_rh_3d', 'original_body_3d', 'original_instrument_3d', 'original_bow_3d', 'original_cp_3d',
+                             'cp_info', 'used_finger_idx', 'original_R_s']
+            for var in vars_to_slice:
+                setattr(self, var, getattr(self, var)[:self.valid_num_frame])
 
 
     def _detect_note_changes_from_audio(self, confidence_threshold=0.5, pitch_change_threshold=50, min_frames=5):

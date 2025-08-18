@@ -208,12 +208,11 @@ ELGAR
 Run `bash train_script.sh` to train the model.
 
 
-
 ## 3. Validation
 
 ### 3.1. Qualitative Visualization
 
-Our visualization is implemented via open3d.
+Our visualization is implemented via open3d. Our open3d visualization is required to deploy on **Windows**.
 
 `view_select = True` for the view select based on the monitor (resolution) you are using.
 
@@ -224,7 +223,7 @@ pip install open3d==0.14.1
 python visualize.py
 ```
 
-### 3.1. Quantitative Evaluation
+### 3.2. Quantitative Evaluation
 Download the [test split](https://forms.gle/pF7KMZ2wrnFQCbY87) of SPD-GEN to quantitatively validate our results. Place them in the following directory.
 
 <details>

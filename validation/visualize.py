@@ -46,7 +46,7 @@ def process_view(
         ic(song_name)
         audio_name = rf"{song_name}.wav"
         # audio_path = rf"../../SPD/{audioroot}/normalized"
-        audio_path = rf"../dataset/{audioroot}/audio/"
+        audio_path = rf"../dataset/{audioroot}/"
         audio_file = os.path.join(audio_path, audio_name)
         ic(audio_file)
 
@@ -69,14 +69,16 @@ def process_view(
             validator = Validation(generation_motion_file=rf'../save/{method}/{train_timestamp}/sample/{sample_timestamp}_{song_name}/{npy_name}.npy',  # not used by visualization
                                    original_motion_file=rf'../dataset/SPD-GEN/{instrument}/test_data/motion/{song_name}.json',
                                    original_body_file=rf'../dataset/SPD-GEN/{instrument}/test_data/motion/body_{song_name}_calc.pkl',
-                                   input_audio_file=rf'../dataset/SPD-GEN/{instrument}/test_data/audio/{song_name}.wav')
+                                   input_audio_file=rf'../dataset/SPD-GEN/{instrument}/test_data/audio/{song_name}.wav',
+                                   vis=True)
             # validator.original_cp_3d = apply_rotations_to_points(validator.original_cp_3d, validator.generation_R_s)
             validator.original_cp_3d = validator.original_cp_3d[start_f:end_f]
         else:
             validator = Validation(generation_motion_file=rf'../save/{method}/{train_timestamp}/sample/{sample_timestamp}_{song_name}/{npy_name}.npy',
                                    original_motion_file=rf'../dataset/SPD-GEN/{instrument}/test_data/motion/cello01.json',  # not used by visualization
                                    original_body_file=rf'../dataset/SPD-GEN/{instrument}/test_data/motion/body_cello01_calc.pkl',  # not used by visualization
-                                   input_audio_file=rf'../dataset/SPD-GEN/{instrument}/test_data/audio/cello01.wav')  # not used by visualization
+                                   input_audio_file=rf'../dataset/SPD-GEN/{instrument}/test_data/audio/cello01.wav',  # not used by visualization
+                                   vis=True)
             validator.original_cp_3d = None
 
         data_manipulator_cello = DataManipulatorCello(bodycolor=color)
@@ -88,7 +90,6 @@ def process_view(
         # validator.generation_bow_3d = apply_rotations_to_points(validator.generation_bow_3d, validator.generation_R_s)
         # # validator.generation_instrument_3d = data_manipulator_cello.get_second_third_string(validator.generation_instrument_3d)
         # validator.generation_instrument_3d = apply_rotations_to_points(validator.generation_instrument_3d, validator.generation_R_s)
-
 
         # ic(validator.generation_lh_3d.shape)
 
@@ -133,14 +134,6 @@ def process_view(
                 shortest=None
             ).run(quiet=True, overwrite_output=True)
 
-            # ffmpeg.input(video_render).output(
-            #     audio_input,
-            #     merge_render,
-            #     vcodec='copy',
-            #     acodec='aac',
-            #     shortest=None
-            # ).run(quiet=True, overwrite_output=True)
-
 
 def run_all_views_in_parallel(
         npy_list,
@@ -173,33 +166,13 @@ def run_all_views_in_parallel(
 
         for result in results:
             print(result.result())
-        # for future in as_completed(futures):
-        #     try:
-        #         future.result()
-        #     except Exception as e:
-        #         print(f"Error occurred in task: {e}")
-        # executor.map(
-        #     process_view,
-        #     [video_path] * len(npy_list),
-        #     [shot_path] * len(npy_list),
-        #     range(len(npy_list)),
-        #     npy_list,
-        #     [color_pool] * len(npy_list),
-        #     [method] * len(npy_list),
-        #     [start_f] * len(npy_list),
-        #     [end_f] * len(npy_list),
-        #     [view_select] * len(npy_list),
-        #     [view] * len(npy_list),
-        #     [audioroot] * len(npy_list),
-        #     [offset] * len(npy_list),
-        #     [selected_frame] * len(npy_list)
-        # )
+
     print(f"{method} ----- tasks completed.")
 
 
 if __name__ == "__main__":
 
-    view_select = True
+    view_select = False
 
     methods = ['full']
     train_timestamps = ['2025']
@@ -255,6 +228,3 @@ if __name__ == "__main__":
         run_all_views_in_parallel(npy_list, video_path, shot_path, color_pool, method, start_f, end_f,
                                   view_select, view, audioroot, offset, selected_frame, if_vis, get_obj,
                                   test_split, sample_timestamp, train_timestamp, ckpt_step, instrument)
-
-        # if os.path.exists(video_path):
-        #     shutil.rmtree(video_path)
