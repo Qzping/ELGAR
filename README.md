@@ -4,9 +4,9 @@ The offical implementation of [ELGAR: <ins>**E**</ins>xpressive Ce<ins>**L**</in
 
 Visit our [project page](https://metaverse-ai-lab-thu.github.io/ELGAR/) for more demos.
 
-Get the [SPD dataset](https://forms.gle/oNFFu3NRoVwkV1Xd9) introduced by our [last paper](https://metaverse-ai-lab-thu.github.io/String-Performance-Dataset-SPD/).
+Get the [SPD-GEN Dataset](https://forms.gle/pF7KMZ2wrnFQCbY87).
 
-Get the [SPD-GEN Coming Soon]().
+Visit our [last paper](https://metaverse-ai-lab-thu.github.io/String-Performance-Dataset-SPD/) for markerless motion capture with audio signals for string performance capture.
 
 [![poster](assets/poster.jpg)](assets/poster.jpg)
 
@@ -81,7 +81,7 @@ ELGAR
 </details>
 
 ## 1. Let's Perform!
-Download the ELGAR [checkpoint]("") and prepare your test audio. Place it in the following directory.
+Download the ELGAR [checkpoint](https://forms.gle/pF7KMZ2wrnFQCbY87) and prepare your test audio. Place it in the following directory.
 
 <details>
 <summary>ELGAR Checkpoint and Test Audio Directory</summary>
@@ -109,9 +109,9 @@ python prepare_inference_data.py --instrument cello --data_type wild --filename 
 Run `bash test_script.sh` to generate the performance motion. (Modify the filename in the script)
 
 ## 2. Data Preparation
-This step is to obtain the [SPD-GEN dataset](""). (Prerequisite for training. You can download the data and skip this step.)
+This step is to obtain the [SPD-GEN dataset](https://forms.gle/pF7KMZ2wrnFQCbY87) and the processed data for training.
 
-Make sure you have downloaded the [SPD]("") and placed the data in the following directory.
+Make sure you have downloaded the [SPD](https://forms.gle/pF7KMZ2wrnFQCbY87) and placed the data in the following directory.
 
 <details>
 <summary>SPD Data Directory</summary>
@@ -225,7 +225,7 @@ python visualize.py
 ```
 
 ### 3.1. Quantitative Evaluation
-Download the [test split]("") of SPD-GEN to quantitatively validate our results. Place them in the following directory.
+Download the [test split](https://forms.gle/pF7KMZ2wrnFQCbY87) of SPD-GEN to quantitatively validate our results. Place them in the following directory.
 
 <details>
 <summary>Test Data Directory</summary>
@@ -267,8 +267,9 @@ python get_blender_animation_from_train.py  # Conversion of the dataset samples
 
 [Generate the fbx](./retargeting/README.md) by the add-on.
 
-[Download]("") the UE (5.5.4) project and replace the animation with yours. Have Fun!
+[Download](https://forms.gle/pF7KMZ2wrnFQCbY87) the UE (5.5.4) project and replace the animation with yours. Have Fun!
 
+<img src="assets/retargeting.gif" alt="ik fit result" width="68%" height="68%" />
 
 ## Acknowledgements
 
