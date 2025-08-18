@@ -172,7 +172,7 @@ def run_all_views_in_parallel(
 
 if __name__ == "__main__":
 
-    view_select = False
+    view_select = True
 
     methods = ['full']
     train_timestamps = ['2025']

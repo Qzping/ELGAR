@@ -528,9 +528,6 @@ class DataManipulatorCello:
                 # Uncomment it when unknown shape bug occurs
                 import matplotlib
                 matplotlib.use("Agg")
-            plt.pause(0.01)
-
-            plt.switch_backend('agg')
 
             # convert Matplotlib to image
             fig.canvas.draw()

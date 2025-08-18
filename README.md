@@ -127,6 +127,11 @@ ELGAR
 ```
 </details>
 
+Check the downloaded data by Matplotlib visualization: `python visualize_mpl.py`
+
+Play with the `visualize_3dpk` method! The Matplotlib visualization can be easily adapted to the data at different preprocessing steps.
+
+
 ### 2.1 Data Normalization
 Run `python data_normalization.py` to get the normalized body in the following directory.
 
