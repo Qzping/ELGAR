@@ -209,13 +209,13 @@ ELGAR
 </details>
 
 
-## 2. Training
+## 3. Training
 Run `bash train_script.sh` to train the model.
 
 
-## 3. Validation
+## 4. Validation
 
-### 3.1. Qualitative Visualization
+### 4.1. Qualitative Visualization
 
 Our visualization is implemented via open3d. Our open3d visualization is required to deploy on **Windows**.
 
@@ -228,7 +228,7 @@ pip install open3d==0.14.1
 python visualize.py
 ```
 
-### 3.2. Quantitative Evaluation
+### 4.2. Quantitative Evaluation
 Download the [test split](https://forms.gle/pF7KMZ2wrnFQCbY87) of SPD-GEN to quantitatively validate our results. Place them in the following directory.
 
 <details>
@@ -256,7 +256,7 @@ Run `bash train_script.sh` and `bash test_script.sh` to train with train set and
 
 Finally, run `python eval_testset.py` to get the evaluation results.
 
-## 4. Retargeting
+## 5. Retargeting
 
 We retarget the motion from SMPL-X to [MetaHuman]("https://www.metahuman.com/") within the [Unreal Engine (UE)]("https://www.unrealengine.com/") to facilitate more applications. Despite the considerable challenges posed by the intricate and interactive nature of the performance motions—leading to suboptimal retargeting results—this work aims to motivate future research to advance more effective solutions.
 
