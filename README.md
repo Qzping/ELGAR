@@ -46,7 +46,7 @@ ELGAR
 </details>
 
 ### SMPL-X Download
-Download SMPL-X v1.1 from the official [website]("https://smpl-x.is.tue.mpg.de/download.php"). Please note that the SMPL-X model has its own [license]("https://smpl-x.is.tue.mpg.de/modellicense.html"), which is different from the MIT license of this repository. Place the model in the following directory. (We use the neutral version of SMPL-X)
+Download SMPL-X v1.1 from the [official website](https://smpl-x.is.tue.mpg.de/download.php). Please note that the SMPL-X model has its own [license]("https://smpl-x.is.tue.mpg.de/modellicense.html"), which is different from the MIT license of this repository. Place the model in the following directory. (We use the neutral version of SMPL-X)
 
 <details>
 <summary>SMPL-X Model Directory</summary>
@@ -63,7 +63,7 @@ ELGAR
 </details>
 
 ### VPoser Checkpoint Download
-Download VPoser v2.0 from the official [website]("https://download.is.tue.mpg.de/download.php?domain=smplx&sfile=V02_05.zip"). Please note that the VPoser has its own [license]("https://smpl-x.is.tue.mpg.de/modellicense.html"), which is different from the MIT license of this repository. Place the VPoser checkpoint in the following directory.
+Download VPoser v2.0 from the [official website](https://download.is.tue.mpg.de/download.php?domain=smplx&sfile=V02_05.zip). Please note that the VPoser has its own [license]("https://smpl-x.is.tue.mpg.de/modellicense.html"), which is different from the MIT license of this repository. Place the VPoser checkpoint in the following directory.
 
 <details>
 <summary>VPoser Checkpoint Directory</summary>
